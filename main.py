@@ -7,6 +7,8 @@ import os
 from utils import *
 
 def main():
+    #I added the below
+    #global dataloader
     args = parse_arguments()
     print('*****************************')
     print(args)

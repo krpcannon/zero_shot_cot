@@ -1,0 +1,17 @@
+
+
+export OPENAI_API_KEY=
+model=gpt3
+
+dataset=gsm8k
+limit_dataset_size=10
+api_time_interval=1.0 
+
+
+
+echo 'export ENV_VAR=12345' >> ~/.bash_profile
+
+
+
+python main.py --method=zero_shot_cot --model=${model} --dataset=${dataset}
+

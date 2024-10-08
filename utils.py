@@ -15,6 +15,9 @@ import random
 import time
 import datetime
 import pandas as pd
+#from DEP_decoderllama import decoder_for_ollama
+
+from decoderollama import decoder_for_ollama
 
 # https://review-of-my-life.blogspot.com/2017/11/python-dict-shuffle.html
 def shuffleDict(d):
@@ -50,6 +53,7 @@ def print_now(return_flag=0):
     else:
         pass
 
+#CHANGE THE BELOW?  
 # Sentence Generator (Decoder) for GPT-3 ...
 def decoder_for_gpt3(args, input, max_length, i, k):
     
@@ -58,22 +62,22 @@ def decoder_for_gpt3(args, input, max_length, i, k):
     time.sleep(args.api_time_interval)
     
     # https://beta.openai.com/account/api-keys
-    openai.api_key = os.getenv("OPENAI_API_KEY")
+    #openai.api_key = os.getenv("OPENAI_API_KEY")
     #print(openai.api_key)
     
     # Specify engine ...
     # Instruct GPT3
-    if args.model == "gpt3":
-        engine = "text-ada-001"
-    elif args.model == "gpt3-medium":
-        engine = "text-babbage-001"
-    elif args.model == "gpt3-large":
-        engine = "text-curie-001"
-    elif args.model == "gpt3-xl":
-        engine = "text-davinci-002"
-    else:
-        raise ValueError("model is not properly defined ...")
-        
+    #if args.model == "gpt3":
+    #    engine = "text-ada-001"
+    #elif args.model == "gpt3-medium":
+    #    engine = "text-babbage-001"
+    #elif args.model == "gpt3-large":
+    #    engine = "text-curie-001"
+    #elif args.model == "gpt3-xl":
+    #    engine = "text-davinci-002"
+    #else:
+    #    raise ValueError("model is not properly defined ...")
+    engine = "gpt-3.5-turbo-0125"
     response = openai.Completion.create(
       engine=engine,
       prompt=input,
@@ -89,7 +93,11 @@ class Decoder():
         print_now()
  
     def decode(self, args, input, max_length, i, k):
-        response = decoder_for_gpt3(args, input, max_length, i, k)
+        #swapping gpt3 for ollama decoder
+        #response = decoder_for_gpt3(args, input, max_length, i, k)
+        #response = decoder_for_ollama(args, input, max_length, i, k)
+        print(f"input is {input}")
+        response = decoder_for_ollama(args, input, max_length, i, k)
         return response
 
 def data_reader(args):
@@ -238,8 +246,14 @@ class MyDataset(Dataset):
         input = self.questions[index]
         output = self.answers[index]
         return input, output
+    
+def seed_worker(worker_id):
+    worker_seed = torch.initial_seed() % 2**32
+    np.random.seed(worker_seed)
+    random.seed(worker_seed)
 
-def setup_data_loader(args):
+
+def DEP_setup_data_loader(args):
 
     # fix randomness of dataloader to ensure reproducibility
     # https://pytorch.org/docs/stable/notes/randomness.html
@@ -254,6 +268,30 @@ def setup_data_loader(args):
     
     dataloader_num_workers = multiprocessing.cpu_count()
     dataloader_num_workers = min(dataloader_num_workers, args.max_num_worker)
+    print("dataloader_num_workers: " + str(dataloader_num_workers))
+    
+    dataset = MyDataset(args)
+    
+    dataloader = torch.utils.data.DataLoader(dataset,
+                  shuffle=True,
+                  batch_size=args.minibatch_size,
+                  drop_last=False,
+                  num_workers=dataloader_num_workers,
+                  worker_init_fn=seed_worker,
+                  generator=g,
+                  pin_memory=True)
+
+    return dataloader
+
+
+def setup_data_loader(args):
+    # fix randomness of dataloader to ensure reproducibility
+    fix_seed(args.random_seed)
+    
+    g = torch.Generator()
+    g.manual_seed(torch.initial_seed() % 2**32)
+    
+    dataloader_num_workers = min(multiprocessing.cpu_count(), args.max_num_worker)
     print("dataloader_num_workers: " + str(dataloader_num_workers))
     
     dataset = MyDataset(args)
