@@ -37,11 +37,14 @@ def decoder_for_ollama(args, input, max_length, i, k):
   {
     'role': 'user',
     'content': input,
+
+    #"options": {
+    #"temperature": 0
   },
 ])
-    print(f"response is {response}")
+    #print(f"response is {response}")
 
-    print(f"response['message']['content'] is {response['message']['content']}")
+    #print(f"response['message']['content'] is {response['message']['content']}")
     #print(response['choices']['text'])
     #return(response['choices']['text'])
     return(response['message']['content'])

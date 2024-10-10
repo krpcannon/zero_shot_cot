@@ -34,6 +34,9 @@ def main():
         pass
     
     total = 0
+    abductive_reason_count = 0
+    inductive_reason_count = 0
+    deductive_reason_count = 0
     correct_list = []        
     for i, data in enumerate(dataloader):
         print('*************************')
@@ -57,14 +60,21 @@ def main():
         
         # Answer prediction by generating text ...
         max_length = args.max_length_cot if "cot" in args.method else args.max_length_direct
+        #calls Decoder -> decode -> decoder_for_ollama
         z = decoder.decode(args, x, max_length, i, 1)
+        #print(f"!!! z is {z}!!!")
+
+        #abductive_reason_count = count_abductive_words(z)
 
         # Answer extraction for zero-shot-cot ...
+        #discuss this code with David? a bit confused here about feeding the model with another prompt? 
         if args.method == "zero_shot_cot":
             z2 = x + z + " " + args.direct_answer_trigger_for_zeroshot_cot
             max_length = args.max_length_direct
             pred = decoder.decode(args, z2, max_length, i, 2)
+            #print(f"!!!z2 + pred is {z2 + pred} !!!")
             print(z2 + pred)
+            #print(f"!!! pred is {pred} !!!")
         else:
             pred = z
             print(x + pred)
@@ -81,11 +91,18 @@ def main():
         correct = (np.array([pred]) == np.array([y])).sum().item()
         correct_list.append(correct)
         total += 1 #np.array([y]).size(0)
+        abductive_reason_count += count_abductive_words(z)
+        inductive_reason_count += count_inductive_words(z)
+        deductive_reason_count += count_deductive_words(z)
         
         if (args.limit_dataset_size != 0) and ((i+1) >= args.limit_dataset_size):
             break
             #raise ValueError("Stop !!")
     
+    
+    print(f"Abductive reasoning count average: {abductive_reason_count/total}")
+    print(f"Inductive reasoning count average: {inductive_reason_count/total}")
+    print(f"Deductive reasoning count average: {deductive_reason_count/total}")
     # Calculate accuracy ...
     accuracy = (sum(correct_list) * 1.0 / total) * 100
     print("accuracy : {}".format(accuracy))

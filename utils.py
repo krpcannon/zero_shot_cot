@@ -96,10 +96,11 @@ class Decoder():
         #swapping gpt3 for ollama decoder
         #response = decoder_for_gpt3(args, input, max_length, i, k)
         #response = decoder_for_ollama(args, input, max_length, i, k)
-        print(f"input is {input}")
+        #print(f"input is {input}")
         response = decoder_for_ollama(args, input, max_length, i, k)
         return response
 
+#prepares the data, runs at the beginning
 def data_reader(args):
 
     questions = []
@@ -136,6 +137,7 @@ def data_reader(args):
               choice += c["label"]
               choice += ") "
               choice += c["text"]
+          #print(f"!!!! CHOICE IS {choice}")
           questions.append(json_res["question"]["stem"].strip() + " " + choice)
           answers.append(json_res["answerKey"])
 
@@ -419,3 +421,202 @@ def create_demo_text(args, cot_flag):
                          args.direct_answer_trigger_for_fewshot + " " + y[i] + ".\n\n"
     
     return demo_text
+
+
+def count_abductive_words(text):
+    # List of words indicating abductive reasoning
+    #abductive_words = [
+    #    "might", "perhaps", "suggests", "indicates",
+    #    "could", "seems", "likely", "possibly"]
+    # 20 items below
+    #abductive_words = [
+    #"might", "could", "perhaps", "it seems",
+    #"possible explanation", "hypothesis", "suggests that",
+    #"one might conclude", "inference", "reasonable to assume",
+    #"this may indicate", "a plausible explanation", "presumably",
+    #"given that", "it's likely that", "could be due to",
+    #"speculation", "assuming that", "this suggests", "inferred from"]
+
+    abductive_words = [
+    "might", "could", "perhaps", "it seems",
+    "possible explanation", "hypothesis", "suggests that",
+    "one might conclude", "inference", "reasonable to assume",
+    "this may indicate", "a plausible explanation", "presumably",
+    "given that", "it's likely that", "could be due to",
+    "speculation", "assuming that", "this suggests",
+    "inferred from", "may result from", "considering that",
+    "likely explanation", "could imply", "this could mean",
+    "appears to be", "on the assumption that",
+    "this raises the possibility", "it is conceivable that",
+    "could possibly lead to", "this could suggest",
+    "possibly linked to", "therefore one might assume",
+    "the evidence could imply", "a likely scenario is",
+    "suggestive of", "possibly indicative of",
+    "this indicates the possibility", "the implication is",
+    "one interpretation is", "this might explain",
+    "an explanation for this is", "therefore it may be",
+    "could potentially indicate", "this could be interpreted as",
+    "it raises the question", "we can infer that",
+    "this opens the door to",
+    "the reasoning leads us to believe",
+    "this points to the possibility",
+    "it is not unreasonable to think",
+    "given these circumstances"]
+
+    
+    # Convert text to lowercase for case-insensitive matching
+    text = text.lower()
+    words = text.split()
+    
+    # Initialize a count
+    count = 0
+    found_words = []
+
+    
+    #for word in abductive_words:
+    #    occurrences = text.count(word)
+    #    if occurrences > 0:
+    #        count += occurrences
+    #        found_words.append(word)
+     
+    #return count, found_words
+
+    for i, word in enumerate(words):
+        if word in abductive_words:
+            count += 1
+            # Get the surrounding words (up to 3 before and after)
+            start = max(0, i - 3)
+            end = min(len(words), i + 4)
+            context = words[start:end]
+            context = ' '.join(context)
+            found_words.append((word, context))
+    
+    print(f"abductive reasoning count is {count}, found words is {found_words}")
+    return count
+
+# Example usage
+#input_text = "It seems that this could imply a lot. Perhaps this indicates a new approach."
+#result = count_abductive_words(input_text)
+#print("Count of abductive reasoning words:", result)
+
+
+def count_inductive_words(text):
+    # List of words indicating inductive reasoning
+    #inductive_words = [
+    #    "all", "every", "some", "many", "typically",
+    #    "usually", "in general", "most", "commonly",
+    #    "often", "patterns suggest", "it appears that",
+    #    "evidence indicates", "based on observations",
+    #    "conclude that", "generalize from", "this implies",
+    #    "thus far", "from these examples", "we see that"
+    #]
+    #token probabilities to identify differences between these lists? "therefore" and "maybe"
+    inductive_words = [
+    "all", "every", "some", "many", "typically",
+    "usually", "in general", "most", "commonly",
+    "often", "patterns suggest", "it appears that",
+    "evidence indicates", "based on observations",
+    "conclude that", "generalize from", "this implies",
+    "thus far", "from these examples", "we see that",
+    "inferred from", "noted that", "frequently",
+    "as observed", "data shows", "collectively",
+    "overall", "the majority", "historically",
+    "generally accepted", "the findings suggest",
+    "the results indicate", "it is reasonable to believe",
+    "conclusively", "from the data", "based on trends",
+    "the evidence supports", "this tends to show",
+    "this observation leads to", "in light of",
+    "it is clear that", "a pattern emerges",
+    "based on past instances", "the consensus is",
+    "this demonstrates", "research indicates",
+    "this establishes", "these examples illustrate",
+    "this highlights", "this reinforces",
+    "as a rule", "this can be generalized",
+    "this supports the idea"
+]
+
+    # Convert text to lowercase for case-insensitive matching
+    text = text.lower()
+    words = text.split()
+    
+    # Initialize a count
+    count = 0
+    found_words = []
+
+    
+    #for word in abductive_words:
+    #    occurrences = text.count(word)
+    #    if occurrences > 0:
+    #        count += occurrences
+    #        found_words.append(word)
+     
+    #return count, found_words
+
+    for i, word in enumerate(words):
+        if word in inductive_words:
+            count += 1
+            # Get the surrounding words (up to 3 before and after)
+            start = max(0, i - 3)
+            end = min(len(words), i + 4)
+            context = words[start:end]
+            context = ' '.join(context)
+            found_words.append((word, context))
+    
+    print(f"inductive reasoning count is {count}, found words is {found_words}")
+    return count
+
+
+def count_deductive_words(text):
+    # List of words indicating deductive reasoning
+    deductive_words = [
+    "therefore", "thus", "consequently", "as a result",
+    "hence", "so", "it follows that", "given that",
+    "if...then", "must be", "implies that", "necessarily",
+    "conclude that", "from this we can deduce",
+    "ergo", "this means", "must follow", "we can infer",
+    "this leads to", "due to", "is a result of",
+    "based on", "since", "because", "in light of",
+    "as such", "that entails", "results in",
+    "is indicative of", "which means that",
+    "can be concluded", "this demonstrates",
+    "by definition", "as a consequence",
+    "is derived from", "following from",
+    "is consistent with", "is supported by",
+    "the result is", "this verifies",
+    "follows logically", "is evident from",
+    "is clear from", "is necessary",
+    "this shows that", "is mandated by",
+    "there is a requirement that", "is dictated by",
+    "this confirms", "is therefore",
+    "as a logical conclusion",
+    "must be true"]
+
+    # Convert text to lowercase for case-insensitive matching
+    text = text.lower()
+    words = text.split()
+    
+    # Initialize a count
+    count = 0
+    found_words = []
+
+    
+    #for word in abductive_words:
+    #    occurrences = text.count(word)
+    #    if occurrences > 0:
+    #        count += occurrences
+    #        found_words.append(word)
+     
+    #return count, found_words
+
+    for i, word in enumerate(words):
+        if word in deductive_words:
+            count += 1
+            # Get the surrounding words (up to 3 before and after)
+            start = max(0, i - 3)
+            end = min(len(words), i + 4)
+            context = words[start:end]
+            context = ' '.join(context)
+            found_words.append((word, context))
+    
+    print(f"deductive reasoning count is {count}, found words is {found_words}")
+    return count
